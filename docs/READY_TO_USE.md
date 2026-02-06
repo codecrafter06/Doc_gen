@@ -142,7 +142,7 @@ Result: Custom documentation
 ### Environment Variables
 ```bash
 # .env.local
-GEMINI_API_KEY=AIzaSyAj6otYbSpZxrmu2rFD5CDopdM-jcdhImY
+GEMINI_API_KEY=
 ```
 
 ### API Endpoints
