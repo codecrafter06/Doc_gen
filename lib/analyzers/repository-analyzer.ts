@@ -2,8 +2,8 @@ import { ProjectStructure, FileNode } from '../types';
 import AdmZip from 'adm-zip';
 
 export class RepositoryAnalyzer {
-  async analyzeZip(buffer: Buffer): Promise<ProjectStructure> {
-    const zip = new AdmZip(buffer);
+  async analyzeZip(buffer: Uint8Array): Promise<ProjectStructure> {
+    const zip = new AdmZip(Buffer.from(buffer));
     const entries = zip.getEntries();
     
     const files: FileNode[] = [];
@@ -39,7 +39,9 @@ export class RepositoryAnalyzer {
     
     // Fetch basic repo info
     const repoInfo = await fetch(`https://api.github.com/repos/${owner}/${cleanRepo}`);
-    if (!repoInfo.ok) throw new Error('Repository not found');
+    if (!repoInfo.ok) {
+      throw new Error(`Repository not found: ${repoInfo.status} ${repoInfo.statusText}`);
+    }
     
     const repoData = await repoInfo.json();
     
@@ -110,17 +112,26 @@ export class RepositoryAnalyzer {
   }
   
   private detectLanguages(files: FileNode[]): string[] {
-    const extensions = new Set(files.map(f => f.path.split('.').pop()));
+    const extensions = new Set(
+      files
+        .map(f => f.path.split('.').pop())
+        .filter((ext): ext is string => ext !== undefined)
+    );
     const langMap: Record<string, string> = {
       ts: 'TypeScript', js: 'JavaScript', py: 'Python',
       java: 'Java', go: 'Go', rs: 'Rust', rb: 'Ruby'
     };
-    return [...extensions].map(ext => langMap[ext!] || '').filter(Boolean);
+    return [...extensions]
+      .map(ext => langMap[ext])
+      .filter((lang): lang is string => lang !== undefined);
   }
   
   private detectFrameworks(files: FileNode[], keyFiles: any): string[] {
     const frameworks: string[] = [];
-    const deps = { ...keyFiles.packageJson?.dependencies, ...keyFiles.packageJson?.devDependencies } || {};
+    const deps = { 
+      ...(keyFiles.packageJson?.dependencies || {}), 
+      ...(keyFiles.packageJson?.devDependencies || {}) 
+    };
     
     if (deps.next) frameworks.push('Next.js');
     if (deps.react) frameworks.push('React');

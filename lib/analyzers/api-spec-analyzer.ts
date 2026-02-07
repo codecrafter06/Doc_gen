@@ -8,23 +8,29 @@ export class APISpecAnalyzer {
     try {
       parsed = JSON.parse(spec);
     } catch {
-      parsed = yaml.load(spec);
+      try {
+        parsed = yaml.load(spec, { schema: yaml.JSON_SCHEMA });
+      } catch (error) {
+        throw new Error('Invalid OpenAPI spec: must be valid JSON or YAML');
+      }
     }
     
     const endpoints: APIEndpoint[] = [];
     const paths = parsed.paths || {};
     
     for (const [path, methods] of Object.entries(paths)) {
-      for (const [method, details] of Object.entries(methods as any)) {
-        if (typeof details !== 'object') continue;
+      if (!methods || typeof methods !== 'object') continue;
+      
+      for (const [method, details] of Object.entries(methods as Record<string, any>)) {
+        if (!details || typeof details !== 'object') continue;
         
         endpoints.push({
           path,
           method: method.toUpperCase(),
-          description: details.summary || details.description,
-          parameters: details.parameters,
-          requestBody: details.requestBody,
-          responses: details.responses
+          description: (details as any).summary || (details as any).description,
+          parameters: (details as any).parameters,
+          requestBody: (details as any).requestBody,
+          responses: (details as any).responses
         });
       }
     }

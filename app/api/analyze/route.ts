@@ -1,3 +1,19 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { RepositoryAnalyzer } from '@/lib/analyzers/repository-analyzer';
+import { APISpecAnalyzer } from '@/lib/analyzers/api-spec-analyzer';
+import { DocumentationComposer } from '@/lib/analyzers/documentation-composer';
+import { generateDocumentation } from '@/lib/gemini';
+import { ProjectStructure } from '@/lib/types';
+
+// Use Node.js runtime for Buffer support
+export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 seconds timeout
+
+// In-memory store for development (use database in production)
+if (!global.docs) {
+  global.docs = {};
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -65,14 +81,15 @@ export async function POST(req: NextRequest) {
     const markdown = composer.compose(structure, endpoints, aiAnalysis);
 
     const id = Date.now().toString();
-    docsStore.set(id, markdown);
+    global.docs[id] = markdown;
 
     return NextResponse.json({ id, success: true });
 
-  } catch (error: any) {
-    console.error('Analysis error:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Analysis error:', errorMessage, error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: errorMessage || 'Internal server error' },
       { status: 500 }
     );
   }

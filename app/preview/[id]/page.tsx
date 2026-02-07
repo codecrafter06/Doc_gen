@@ -11,17 +11,33 @@ export default function PreviewPage() {
 
   useEffect(() => {
     async function fetchDocs() {
+      if (!params.id) {
+        setError('Invalid documentation ID');
+        setLoading(false);
+        return;
+      }
+      
       try {
-        const res = await fetch(`/api/analyze?id=${params.id}`);
+        const res = await fetch(`/api/generate?id=${params.id}`);
+        
+        if (!res.ok) {
+          const data = await res.json();
+          setError(data.error || 'Failed to load documentation');
+          return;
+        }
+        
         const data = await res.json();
         
         if (data.error) {
           setError(data.error);
-        } else {
+        } else if (data.markdown) {
           setMarkdown(data.markdown);
+        } else {
+          setError('Invalid response format');
         }
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -31,12 +47,18 @@ export default function PreviewPage() {
   }, [params.id]);
 
   const handleDownload = () => {
+    if (!markdown) {
+      console.error('No markdown content to download');
+      return;
+    }
+    
     const blob = new Blob([markdown], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = 'documentation.md';
     a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (loading) {

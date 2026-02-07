@@ -1,19 +1,25 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 if (!process.env.GEMINI_API_KEY) {
-  console.warn('GEMINI_API_KEY not set');
+  console.warn('⚠️  GEMINI_API_KEY not set - AI features will not work');
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function analyzeWithGemini(prompt: string): Promise<string> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY environment variable is not set');
+  }
+  
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const result = await model.generateContent(prompt);
-    return result.response.text();
-  } catch (error: any) {
-    console.error('Gemini API error:', error);
-    throw new Error(`AI analysis failed: ${error.message}`);
+    const response = result.response;
+    return response.text();
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Gemini API error:', errorMessage);
+    throw new Error(`AI analysis failed: ${errorMessage}`);
   }
 }
 

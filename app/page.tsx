@@ -38,8 +38,9 @@ export default function Home() {
       } else if (data.id) {
         router.push(`/preview/${data.id}`);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to analyze project');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to analyze project';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
