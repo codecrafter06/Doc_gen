@@ -12,7 +12,7 @@ export async function analyzeWithGemini(prompt: string): Promise<string> {
   }
   
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.0-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const result = await model.generateContent(prompt);
     const response = result.response;
     return response.text();
